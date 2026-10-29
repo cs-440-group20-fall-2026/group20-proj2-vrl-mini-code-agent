@@ -25,7 +25,16 @@ class TestVacuumEnvironment(unittest.TestCase):
         self.assertEqual(env.step('Down').state, (0, 1))
 
     def test_charger_terminal(self):
-        # TODO: Complete charger result
+    env = VacuumEnvironment(intended_probability=1) #mavigate deterministically to the charger at (3,3) from (0,0)
+        # Right 3 times -> (0,3), Down 3 times -> (3,3)
+        for _ in range(3):
+            env.step('Right')
+        for _ in range(2):
+            env.step('Down')
+        result = env.step('Down')
+        self.assertEqual(result.state, CHARGER)
+        self.assertTrue(result.terminated)
+        self.assertEqual(result.reward, 10.0)
         return
 
     def test_trap_terminal(self):
