@@ -4,8 +4,12 @@ from vacuum.environment import VacuumEnvironment, START, CHARGER, TRAP, OBSTACLE
 # TODO: Complete Unit Tests
 class TestVacuumEnvironment(unittest.TestCase):
     def test_reset(self):
-        # TODO: complete reset
-        return
+        env = VacuumEnvironment()
+        # moove agent away from start
+        env.step('Right')
+        state = env.reset() #reset environment
+        self.assertEqual(state, START)
+        self.assertFalse(env.terminated)
 
     def test_invalid_action(self):
         with self.assertRaises(ValueError):
