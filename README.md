@@ -15,7 +15,7 @@ strategy_4/README.md
 vacuum/environment.py
 scripts/demo.py
 tests/test_environment.py
-docs/environmnet_specification.md
+docs/environment_specification.md
 repository_links.txt
 ```
 
