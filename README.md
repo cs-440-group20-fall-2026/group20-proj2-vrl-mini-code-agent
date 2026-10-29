@@ -16,7 +16,6 @@ vacuum/environment.py
 scripts/demo.py
 tests/test_environment.py
 docs/environmnet_specification.md
-docs/video_walkthrough.md
 repository_links.txt
 ```
 
