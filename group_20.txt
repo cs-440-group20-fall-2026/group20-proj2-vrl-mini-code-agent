@@ -1,1 +1,7 @@
-https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering.git
+root of repository: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering.git
+
+Strategy_1: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering/tree/main/strategy_1
+
+Strategy_4: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering/tree/main/strategy_4
+
+Both strategies are in one repository, as requested.
