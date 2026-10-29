@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "blockReadsOutsideWorkingDirectories": true,
+    "additionalDirectories": ["../vacuum"],
+    "deny": [
+      "Edit(../vacuum/**)"
+    ]
+  }
+}
