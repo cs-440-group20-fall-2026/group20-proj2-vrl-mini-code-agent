@@ -5,9 +5,9 @@ from vacuum.environment import VacuumEnvironment, START, CHARGER, TRAP, OBSTACLE
 class TestVacuumEnvironment(unittest.TestCase):
     def test_reset(self):
         env = VacuumEnvironment()
-        # moove agent away from start
+        # move agent away from start
         env.step('Right')
-        state = env.reset() #reset environment
+        state = env.reset()  # reset environment
         self.assertEqual(state, START)
         self.assertFalse(env.terminated)
 
@@ -25,7 +25,7 @@ class TestVacuumEnvironment(unittest.TestCase):
         self.assertEqual(env.step('Down').state, (0, 1))
 
     def test_charger_terminal(self):
-    env = VacuumEnvironment(intended_probability=1) #mavigate deterministically to the charger at (3,3) from (0,0)
+        env = VacuumEnvironment(intended_probability=1)  # navigate deterministically to the charger at (3,3) from (0,0)
         # Right 3 times -> (0,3), Down 3 times -> (3,3)
         for _ in range(3):
             env.step('Right')
@@ -35,10 +35,9 @@ class TestVacuumEnvironment(unittest.TestCase):
         self.assertEqual(result.state, CHARGER)
         self.assertTrue(result.terminated)
         self.assertEqual(result.reward, 10.0)
-        return
 
     def test_trap_terminal(self):
-        #TODO: Complete trap result
+        # TODO: Complete trap result
         return
 
     def test_seed_reproducible(self):
