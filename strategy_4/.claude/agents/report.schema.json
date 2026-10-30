@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "required": ["agent", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "agent": {"enum": ["environment-reviewer", "test-reviewer", "researcher", "research-implementer", "research-verifier"]},
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["status", "evidence", "note"],
+        "additionalProperties": false,
+        "properties": {
+          "status": {"enum": ["PASS", "FAIL", "UNKNOWN", "INFO"]},
+          "evidence": {"type": "string", "description": "file:line cited, or path changed"},
+          "note": {"type": "string"}
+        }
+      }
+    }
+  }
+}
