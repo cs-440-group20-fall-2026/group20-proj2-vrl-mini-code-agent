@@ -12,9 +12,9 @@ Definitions live under `.claude/agents/`:
 |---|---|---|
 | `environment-reviewer` | reviews simulator rules and model separation | nothing |
 | `test-reviewer` | reviews tests and coverage | nothing |
-| `researcher` | researches groundwork for our RL problem (episode runner, exploration, sample logging, counts, metrics) | nothing |
-| `research-implementer` | turns the researcher's brief into docs | `context/research/` only |
-| `research-verifier` | reviews the docs in `context/research/` and runs the research verification tests listed in `context/testing.md` | nothing |
+| `researcher` | researches groundwork for our RL problem (episode runner, exploration, sample logging, counts, metrics) and proposes a solution | nothing |
+| `research-implementer` | turns the researcher's brief into a design doc, Python code, and tests | `context/research/` only |
+| `research-verifier` | reviews the docs and code in `context/research/` and runs the research verification tests listed in `context/testing.md` | nothing |
 
 ## Shared files
 - `.claude/constraints.md`: rules every agent reads first.
@@ -29,6 +29,7 @@ python3 orchestrator.py                      # run the reviewers (or: review [ag
 python3 orchestrator.py pipeline "question"  # researcher -> research-implementer -> research-verifier
 ```
 
+Add `-v` (before or after the subcommand) to stream each agent's tool calls, the brief handoff, and per-agent cost and permission denials.
 On Windows, use `python` instead of `python3`.
 
 ## Pipeline gate
@@ -44,7 +45,7 @@ It never sees the researcher's context.
 Q-learning is a later lab, so it is gated in three layers:
 - Rule: the "Forbidden" list in `.claude/constraints.md`, which every agent reads.
 - Code: `orchestrator.py` scans research findings with a regex (no LLM) and stops the pipeline before the implementer; it also scans `context/research/` afterwards and adds a FAIL.
-- Test: `tests/test_research.py` fails if any research doc contains a forbidden term; the verifier runs it.
+- Test: `tests/test_research.py` fails if any research doc or code contains a forbidden term; the verifier runs it.
 
 ## Demonstration prompt
 "Use the environment-reviewer subagent to check grid and terminal-state rules, and the test-reviewer subagent to check test coverage.

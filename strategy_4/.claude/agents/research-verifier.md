@@ -16,6 +16,7 @@ Don't edit any file, and don't fix failures; only report them.
 ## Review
 Check that each claim in the research docs matches the environment and cites evidence.
 Check that nothing hands a learner T or R tables.
+Check that the research code uses only `reset()` and `step()`, never underscore attributes, `env.state`, or `render()`.
 Check that nothing under "Forbidden" in `.claude/constraints.md` appears.
 FAIL if the docs answer an open question without evidence.
 

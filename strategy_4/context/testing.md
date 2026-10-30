@@ -17,7 +17,8 @@ On Windows: `set PYTHONPATH=..`, then `python -m unittest discover -s tests -v`.
 - `tests/test_ground_truth.py` - one recorded run: input actions and expected outputs.
   Don't modify.
 - `tests/test_orchestrator.py` - sub-agent config wiring, and learner isolation (only `reset()`/`step()`).
-- `tests/test_research.py` - research docs in `context/research/` stay groundwork-only (no Q-learning).
+- `tests/test_research.py` - research docs and code in `context/research/` stay groundwork-only (no Q-learning).
+- `context/research/test_*.py` - tests for the research code, written by `research-implementer`.
 
 ## Rules
 - Deterministic tests use `intended_probability=1`; stochastic tests use fixed seeds.
@@ -30,6 +31,8 @@ Run by `research-verifier` after every research implementation in `context/resea
 
 - `python3 -m unittest tests.test_ground_truth -v`: the environment still matches the recorded run.
 - `python3 -m unittest tests.test_orchestrator -v`: agent wiring and learner isolation still hold.
-- `python3 -m unittest tests.test_research -v`: research docs contain no Q-learning terms.
+- `python3 -m unittest tests.test_research -v`: research docs and code contain no Q-learning terms.
+- `python3 -m unittest discover -s context/research -v`: the research code passes its own tests.
+  "NO TESTS RAN" counts as a FAIL: every research implementation must ship tests.
 
 A FAIL in any of these means the research implementation can't be accepted.
