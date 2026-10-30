@@ -19,7 +19,12 @@ All tests live in `testing/`:
 
 ## Running Tests
 Run tests from the `strategy_1/` directory. The `-p "*.py"` pattern is required because `baseline_test.py` and `performance_benchmark.py` do not match unittest's default `test*.py` pattern:
-```bash
+
+From Root Directory (vacuum-rl-context-engineering):
+
+PYTHONPATH=. python3 -m unittest discover -s strategy_1/testing -p "*.py" -v
+
+From Inside strategy_1/ Directory:
+
+cd strategy_1
 PYTHONPATH=.. python3 -m unittest discover -s testing -p "*.py" -v
-```
-On Windows (cmd): `set PYTHONPATH=..` then `python -m unittest discover -s testing -p "*.py" -v`
