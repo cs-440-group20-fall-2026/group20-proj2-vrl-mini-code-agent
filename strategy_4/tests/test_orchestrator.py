@@ -2,6 +2,7 @@
 and a learner only needs reset()/step()."""
 import json
 import re
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -108,13 +109,15 @@ class TestOrchestratorConfig(unittest.TestCase):
 
     def test_prompt_carries_constraints(self):
         self.assertTrue(orchestrator.build_prompt('task').startswith(CONSTRAINTS.read_text()))
+        self.assertIn(SCHEMA.read_text(), orchestrator.build_prompt('task'))
 
 
 class TestPipeline(unittest.TestCase):
     def test_gate(self):
         self.assertTrue(gate(report('researcher', 'INFO', 'PASS')))
         self.assertFalse(gate(report('researcher', 'INFO', 'FAIL')))
-        self.assertFalse(gate(report('researcher', 'INFO', 'UNKNOWN')))
+        self.assertTrue(gate(report('researcher', 'INFO', 'UNKNOWN')))  # open questions travel on
+        self.assertFalse(gate(report('researcher', 'UNKNOWN')))  # a decline has no INFO
         self.assertFalse(gate(report('researcher', 'PASS')))
 
     def test_brief_carries_only_info(self):
@@ -122,6 +125,21 @@ class TestPipeline(unittest.TestCase):
         self.assertIn('INFO note 0 (x.py:0)', brief)
         self.assertIn('INFO note 2 (x.py:2)', brief)
         self.assertNotIn('PASS note', brief)
+
+    def test_brief_records_open_questions(self):
+        brief = build_brief('q', report('researcher', 'INFO', 'UNKNOWN', 'FAIL'))
+        _, questions = brief.split('Open questions')
+        self.assertIn('UNKNOWN note 1 (x.py:1)', questions)
+        self.assertNotIn('FAIL note', brief)
+        self.assertNotIn('Open questions', build_brief('q', report('researcher', 'INFO')))
+
+    def test_guard_catches_q_learning_terms(self):
+        for text in ['Use Q-learning', 'a q table', 'Q(s, a)', 'Bellman backup', 'value iteration',
+                     'TD error', 'temporal difference', 'SARSA', 'learning rate 0.1', 'no Qlearning here']:
+            self.assertTrue(orchestrator.q_learning_hits(text), text)
+        for text in ['raw counts N(s,a)', 'uniform-random policy', 'undiscounted return', 'state (3,3)',
+                     'freq-table of visits', 'freq values per state', 'Iraq tables']:
+            self.assertFalse(orchestrator.q_learning_hits(text), text)
 
     def test_parse_report_rejects_wrong_agent(self):
         stdout = json.dumps({orchestrator.RESULT_KEY: report('test-reviewer', 'PASS')})
@@ -132,12 +150,46 @@ class TestPipeline(unittest.TestCase):
         stdout = json.dumps({orchestrator.RESULT_KEY: json.dumps(report('researcher', 'INFO'))})
         self.assertEqual(parse_report(stdout, 'researcher')['agent'], 'researcher')
 
+    def test_parse_report_accepts_fenced_result(self):
+        fenced = '```json\n' + json.dumps(report('researcher', 'INFO')) + '\n```'
+        stdout = json.dumps({orchestrator.RESULT_KEY: fenced})
+        self.assertEqual(parse_report(stdout, 'researcher')['agent'], 'researcher')
+
+    def test_parse_report_rejects_malformed_finding(self):
+        bad = report('researcher', 'INFO')
+        bad['findings'][0]['status'] = 'MAYBE'
+        with self.assertRaises(ValueError):
+            parse_report(json.dumps({orchestrator.RESULT_KEY: bad}), 'researcher')
+
+    def test_parse_report_rejects_missing_findings(self):
+        stdout = json.dumps({orchestrator.RESULT_KEY: {'agent': 'researcher'}})
+        with self.assertRaises(ValueError):
+            parse_report(stdout, 'researcher')
+
     def test_gate_stop_spawns_nothing_else(self):
-        spawn, calls = fake_spawn({'researcher': report('researcher', 'INFO', 'UNKNOWN')})
+        spawn, calls = fake_spawn({'researcher': report('researcher', 'UNKNOWN')})
         with mock.patch.object(orchestrator, 'spawn', spawn):
             reports = orchestrator.pipeline('q')
         self.assertEqual([name for name, _ in calls], ['researcher'])
         self.assertEqual(len(reports), 1)
+
+    def test_q_learning_research_never_reaches_implementer(self):
+        research = report('researcher', 'INFO')
+        research['findings'][0]['note'] = 'Store a Q-table and apply a Bellman update.'
+        spawn, calls = fake_spawn({'researcher': research})
+        with mock.patch.object(orchestrator, 'spawn', spawn):
+            reports = orchestrator.pipeline('q')
+        self.assertEqual([name for name, _ in calls], ['researcher'])
+        self.assertEqual(reports[-1]['agent'], orchestrator.GUARD)
+
+    def test_q_learning_in_docs_is_flagged_and_verifier_still_runs(self):
+        spawn, calls = fake_spawn({'researcher': report('researcher', 'INFO')})
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'plan.md').write_text('Later: value iteration.')
+            with mock.patch.object(orchestrator, 'spawn', spawn), mock.patch.object(orchestrator, 'RESEARCH', Path(tmp)):
+                reports = orchestrator.pipeline('q')
+        self.assertIn(orchestrator.GUARD, [r['agent'] for r in reports])
+        self.assertEqual([name for name, _ in calls], [*PIPELINE, orchestrator.VERIFIER])
 
     def test_verifier_always_runs_after_implementer(self):
         spawn, calls = fake_spawn({
