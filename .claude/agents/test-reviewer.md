@@ -1,6 +1,6 @@
 ---
 name: test-reviewer
-description: Review only vacuum environmenrt tests and their coverage.
+description: Review only vacuum environment tests and their coverage.
 tools: Read, Grep, Glob
 model: inherit
 ---

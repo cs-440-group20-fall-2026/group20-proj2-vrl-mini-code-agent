@@ -10,7 +10,7 @@ Start (0,0); obstacle X (1,1); trap -1 (3,1); charger +10 (3,3). Four cardinal a
 - Python standard library only; use descriptive names and deterministic seeds in tests.
 - Keep environment behavior separate from agent policy.
 - Test boundaries, obstacle, terminal states, and repeatability.
-- Never claim the scripted demostration is Q-learning.
+- Never claim the scripted demonstration is Q-learning.
 - Do not add a Q-learning implementation unless a later assignment requests it.
 
 ## Context loading
