@@ -13,3 +13,10 @@ Run from `strategy_4/`: `PYTHONPATH=.. python -m unittest discover -s tests -v`
 - Deterministic tests use `intended_probability=1`; stochastic tests use fixed seeds.
 - Never assume a stochastic run always succeeds.
 - Tests use only `reset()`/`step()`, never simulator internals.
+
+## Research verification
+Run by `research-verifier` after every research implementation in `context/research/`.
+`orchestrator.py` sets `PYTHONPATH`, so the commands need no prefix.
+- `python3 -m unittest tests.test_ground_truth -v`: the environment still matches the recorded run.
+- `python3 -m unittest tests.test_orchestrator -v`: agent wiring and learner isolation still hold.
+- A FAIL in either means the research implementation can't be accepted.
