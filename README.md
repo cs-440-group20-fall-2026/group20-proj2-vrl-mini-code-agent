@@ -33,7 +33,7 @@ A 4x4 vacuum robot environment with start `(0,0)`, obstacle `(1,1)`, trap `(3,1)
 │   │   ├── settings.json
 │   │   └── agents/                 # reviewers, researcher, research-implementer,
 │   │                               # research-verifier, report.schema.json
-│   └── tests/                      # test_ground_truth, test_orchestrator
+│   └── tests/                      # test_ground_truth, test_orchestrator, test_research
 ├── Instructions.md                 # lab assignment
 ├── group_20.txt                    # repository links for submission
 └── requirements.txt                # no third-party dependencies
