@@ -17,13 +17,42 @@ AGENTS = {
 
 
 def build_command(name, task):
-    # cwd=strategy_4 so Claude Code finds .claude/agents; --add-dir opens only ../vacuum/
-    return ['claude', '-p', '--agent', name, '--add-dir', str(VACUUM), task]
+    return [
+        'claude',
+        '--print',
+        task,
+        '--agent',
+        name,
+        '--add-dir',
+        str(VACUUM)
+    ]
 
 
 def spawn(name, task):
-    result = subprocess.run(build_command(name, task), cwd=STRATEGY,
-                            capture_output=True, text=True, check=True)
+    command = build_command(name, task)
+
+    print(f"\nLaunching: {name}", flush=True)
+
+    result = subprocess.run(
+        command,
+        cwd=STRATEGY,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False
+    )
+
+    if result.returncode != 0:
+        print(f"\nAgent '{name}' failed.")
+        print(f"Exit code: {result.returncode}")
+        print(f"STDERR:\n{result.stderr}")
+        print(f"STDOUT:\n{result.stdout}")
+
+        raise RuntimeError(
+            f"Claude Code agent '{name}' failed."
+        )
+
     return result.stdout.strip()
 
 
