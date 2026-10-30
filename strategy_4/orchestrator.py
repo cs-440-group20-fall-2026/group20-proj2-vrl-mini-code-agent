@@ -8,6 +8,7 @@ Run from strategy_4/:
 import argparse
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -15,6 +16,7 @@ STRATEGY = Path(__file__).resolve().parent
 VACUUM = STRATEGY.parent / 'vacuum'  # only directory allowed outside strategy_4/ (read-only)
 CONSTRAINTS = STRATEGY / '.claude' / 'constraints.md'  # shared rules, prepended to every task
 SCHEMA = STRATEGY / '.claude' / 'agents' / 'report.schema.json'  # shared output contract
+RESEARCH = STRATEGY / 'context' / 'research'  # the only place the implementer may write
 
 # reviewer name -> the only task it receives
 REVIEWERS = {
@@ -34,8 +36,15 @@ FLAGS = {
 }
 
 STATUSES = ('PASS', 'FAIL', 'UNKNOWN', 'INFO')
-BLOCKING = {'FAIL', 'UNKNOWN'}  # any of these from the researcher stops the pipeline
-RESULT_KEY = 'structured_output'  # unverified: confirm against the first real run's JSON
+BLOCKING = {'FAIL'}  # a FAIL stops the pipeline; UNKNOWN rows travel on as open questions
+
+# Q-learning is a later lab: these terms may not appear in research findings or research docs, even negated
+FORBIDDEN = re.compile(
+    r'\bq[- ]?learning|\bq[- ]?tables?|\bq[- ]?values?|\bq\s*\(\s*s|bellman|value[- ]iteration|policy[- ]iteration'
+    r'|temporal[- ]difference|\btd\s*(?:\(|error|target|update)|\bsarsa\b|learning[- ]rate',
+    re.IGNORECASE)
+GUARD = 'q-learning-guard'  # label for the orchestrator's own (non-LLM) findings
+RESULT_KEY = 'result'  # confirmed on the first real run: the report arrives as a (possibly fenced) string
 
 
 def build_command(name):
@@ -45,7 +54,10 @@ def build_command(name):
 
 
 def build_prompt(task):
-    return f'{CONSTRAINTS.read_text()}\n## Task\n{task}\n'
+    # the schema itself goes in the prompt: agents improvise key names when they only see its path
+    return (f'{CONSTRAINTS.read_text()}\n## Output schema\n```json\n{SCHEMA.read_text()}```\n'
+            'Use exactly these keys; `evidence` is one string, not a list.\n'
+            f'\n## Task\n{task}\n')
 
 
 def spawn(name, task):
@@ -59,9 +71,16 @@ def spawn(name, task):
 def parse_report(stdout, name):
     report = json.loads(stdout)[RESULT_KEY]
     if isinstance(report, str):
-        report = json.loads(report)
-    if report['agent'] != name:
-        raise ValueError(f'expected a report from {name}, got {report["agent"]}')
+        # agents may wrap the JSON in a ```json fence; keep only the outermost object
+        report = json.loads(report[report.index('{'):report.rindex('}') + 1])
+    # --json-schema isn't enforced on this path, so check the shape here
+    if report.get('agent') != name:
+        raise ValueError(f'expected a report from {name}, got {report.get("agent")}')
+    if not isinstance(report.get('findings'), list):
+        raise ValueError(f'{name}: report has no findings list')
+    for finding in report['findings']:
+        if set(finding) != {'status', 'evidence', 'note'} or finding['status'] not in STATUSES:
+            raise ValueError(f'{name}: malformed finding {finding}')
     return report
 
 
@@ -75,16 +94,42 @@ def gate(report):
 
 
 def build_brief(question, report):
-    # only INFO rows cross over; the researcher's context never reaches the implementer
-    points = [f'- {f["note"]} ({f["evidence"]})' for f in report['findings'] if f['status'] == 'INFO']
-    return f'Implement this brief in context/research/.\nQuestion: {question}\n' + '\n'.join(points)
+    # only INFO and UNKNOWN rows cross over; the researcher's context never reaches the implementer
+    def rows(status):
+        return [f'- {f["note"]} ({f["evidence"]})' for f in report['findings'] if f['status'] == status]
+    brief = f'Implement this brief in context/research/.\nQuestion: {question}\n' + '\n'.join(rows('INFO'))
+    if questions := rows('UNKNOWN'):
+        brief += '\n\nOpen questions (record them as open; do not answer them):\n' + '\n'.join(questions)
+    return brief
+
+
+def q_learning_hits(text):
+    return sorted({m.group(0).lower() for m in FORBIDDEN.finditer(text)})
+
+
+def guard(evidence, text):
+    # deterministic Q-learning check: returns a FAIL report, or None when the text is clean
+    hits = q_learning_hits(text)
+    if not hits:
+        return None
+    return {'agent': GUARD, 'findings': [{'status': 'FAIL', 'evidence': evidence,
+                                          'note': f'Q-learning terms are forbidden in this lab: {", ".join(hits)}'}]}
+
+
+def research_docs():
+    return '\n'.join(p.read_text() for p in sorted(RESEARCH.rglob('*')) if p.is_file())
 
 
 def pipeline(question):
     research = run('researcher', question)
+    blocked = guard('researcher findings', '\n'.join(f['note'] for f in research['findings']))
+    if blocked:
+        return [research, blocked]
     if not gate(research):
         return [research]
     reports = [research, run('research-implementer', build_brief(question, research))]
+    if leaked := guard('context/research/', research_docs()):
+        reports.append(leaked)
     return reports + [run(VERIFIER, VERIFY_TASK)]
 
 
