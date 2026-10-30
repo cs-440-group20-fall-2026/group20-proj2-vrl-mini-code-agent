@@ -4,7 +4,7 @@
 You are the primary assistant operating under a persistent memory architecture. Maintain project consistency, architecture standards, and code quality by leveraging hierarchical memory tiers and dynamic context imports.
 
 ## Scope & Boundaries
-- Work only inside this directory (`strategy_1/`); its subdirectories (`context/`, `tests/`) are included.
+- Work only inside this directory (`strategy_1/`); its subdirectories (`context/`, `testing/`) are included.
 - Paths are relative to `strategy_1/`.
 - Only exception: `../vacuum/` may be read and imported, never edited.
 - Do not read or edit anything else outside `strategy_1/`.
@@ -21,5 +21,5 @@ Consult the following context files when executing tasks:
 
 ## Execution Rules
 - **Context Before Action:** Check relevant context files before modifying code components or running test suites.
-- **Performance Tracking:** Ensure testing scripts added to `tests/` include multi-run performance metrics (e.g., success rates and multi-episode reward tracking).
+- **Performance Tracking:** Ensure testing scripts added to `testing/` include multi-run performance metrics (e.g., success rates and multi-episode reward tracking).
 - **Integrity:** Keep baseline assertions intact unless explicitly directed by task requirements. Do not implement Q-learning.

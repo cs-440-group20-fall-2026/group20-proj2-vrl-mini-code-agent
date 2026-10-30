@@ -22,7 +22,7 @@ class TestPerformanceBenchmark(unittest.TestCase):
 
             total_accumulated_reward += episode_reward
             if env.state == CHARGER:
-                successful_runs += success_rate_increment = 1
+                successful_runs += 1
 
         success_rate = (successful_runs / episodes) * 100
         avg_reward = total_accumulated_reward / episodes

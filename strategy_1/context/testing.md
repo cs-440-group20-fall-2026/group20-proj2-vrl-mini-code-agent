@@ -6,8 +6,10 @@
 
 
 ## Files
-- `tests/test_environment.py` — Verifies core grid behavior, boundaries, obstacles, and terminal states (`reset`, `charger_terminal`, `trap_terminal`).
-- `tests/test_performance.py` — Runs multi-episode evaluations, tracking performance metrics, rewards, and multi-run success rates under deterministic and stochastic conditions.
+All tests live in `testing/`:
+- `testing/baseline_test.py` — Verifies the deterministic scripted path (`intended_probability=1.0`) starts at `START`, reaches the charger, and receives the `+10` reward.
+- `testing/test_performance.py` — Runs multi-episode evaluations: deterministic baseline reward/step metrics (fixed seeds `42`+) and a stochastic completion-rate benchmark (seeds `100`+).
+- `testing/performance_benchmark.py` — Runs a 20-episode stochastic benchmark (seeds `200`+) and reports success rate and average episode reward.
 
 ## Rules & Constraints
 - **Determinism & Seeds:** Use `intended_probability=1` for deterministic verification tests, and fixed seeds (e.g., `seed=42`) for reproducible stochastic test runs.
@@ -16,8 +18,8 @@
 - **No Q-learning:** Ensure test files remain focused on environment verification and performance metrics without implementing Q-learning.
 
 ## Running Tests
-Run tests from the `strategy_1/` directory using:
+Run tests from the `strategy_1/` directory. The `-p "*.py"` pattern is required because `baseline_test.py` and `performance_benchmark.py` do not match unittest's default `test*.py` pattern:
 ```bash
-PYTHONPATH=.. python3 -m unittest discover -s tests -v
-(On Windows: set PYTHONPATH=.., then run python -m unittest discover -s tests -v)
-
+PYTHONPATH=.. python3 -m unittest discover -s testing -p "*.py" -v
+```
+On Windows (cmd): `set PYTHONPATH=..` then `python -m unittest discover -s testing -p "*.py" -v`
