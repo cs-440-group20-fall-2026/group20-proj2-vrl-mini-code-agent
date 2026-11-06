@@ -11,7 +11,7 @@ Start (0,0); obstacle X (1,1); trap -1 (3,1); charger +10 (3,3). Four cardinal a
 - Keep environment behavior separate from agent policy.
 - Test boundaries, obstacle, terminal states, and repeatability.
 - Never claim the scripted demonstration is Q-learning.
-- Do not add a Q-learning implementation unless a later assignment requests it.
+- Do not add a Q-learning implementation unless a later assignment requests it. Lab 5 requests it: keep Q-learning in `lab_5/`, using only `reset()`/`step()`; use the `vacuum-rl-report` skill for reports.
 
 ## Context loading
 Consult `.claude/context/environment.md` for environment changes and `.claude/context/testing.md` for test changes. Read only the task-relevant file.
