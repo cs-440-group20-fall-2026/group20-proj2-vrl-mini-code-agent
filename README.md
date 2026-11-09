@@ -78,7 +78,7 @@ python orchestrator.py pipeline "question"   # researcher -> implementer -> veri
 ## Important distinction
 The lab states T and R are unknown **to the agent**, not that a runnable simulator can operate without internal rules. This example uses a clearly labeled assumed stochastic model, documented in `docs/environment_specification.md`. No agent is given the transition or reward tables; the Lab 5 learner uses only `reset()` and `step()`.
 
-## Code Feature Implementation: Hooks (Group 20 - Individual Contribution)
+## Code Feature Implementation: Hooks
 We implemented a `PostToolUse` event hook located in `.claude/hooks.json` that triggers `scripts/evaluate_mdp_hook.py`.
 
 ### MDP Hyperparameters Tracked:
