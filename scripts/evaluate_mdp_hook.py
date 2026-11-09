@@ -21,9 +21,9 @@ def main():
     except Exception:
         tool_name = "Tool Call"
 
-    print(f"\n⚡ [MDP Hook Triggered] Tool: {tool_name}", file=sys.stderr)
-    print(f"📊 Hyperparameters -> Living Reward: {LIVING_REWARD} | Gamma: {GAMMA} | Alpha: {ALPHA} | Epsilon: {EPSILON}", file=sys.stderr)
-    print(f"✅ Logged step trajectory against vacuum environment states.\n", file=sys.stderr)
+    print(f"\n [MDP Hook Triggered] Tool: {tool_name}", file=sys.stderr)
+    print(f" Hyperparameters -> Living Reward: {LIVING_REWARD} | Gamma: {GAMMA} | Alpha: {ALPHA} | Epsilon: {EPSILON}", file=sys.stderr)
+    print(f" Logged step trajectory against vacuum environment states.\n", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
