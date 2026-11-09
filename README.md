@@ -90,6 +90,7 @@ We implemented a `PostToolUse` event hook located in `.claude/hooks.json` that t
 ### How to Verify:
 ```powershell
 echo '{"tool_name": "Bash"}' | python scripts/evaluate_mdp_hook.py
+(On Unix/macOS: echo '{"tool_name": "Bash"}' | PYTHONPATH=. python3 scripts/evaluate_mdp_hook.py)
 
 ## Submission
 Submit `group_20.txt`, this `README.md`, and a video link to Canvas for Lab 4. Lab 5 deliverables are in `lab_5/`.
