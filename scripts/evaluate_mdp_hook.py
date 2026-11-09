@@ -1,13 +1,13 @@
 import sys
 import os
 
-# Add project root to python path so it can import the 'vacuum' package
+# project root to python path so it can import the 'vacuum' package
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
 from vacuum.environment import CHARGER, TRAP
 
-# MDP Hyperparameters for Group 20 report evaluation
+# MDP Hyperparameters for  report evaluation
 LIVING_REWARD = -0.05  # Step penalty
 GAMMA = 0.95           # Discount factor
 ALPHA = 0.1            # Learning rate
