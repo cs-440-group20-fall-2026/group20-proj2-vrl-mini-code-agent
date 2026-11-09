@@ -13,10 +13,13 @@ A 4x4 vacuum robot environment with start `(0,0)`, obstacle `(1,1)`, trap `(3,1)
 │   ├── context/                    # focused context: environment.md, testing.md
 │   ├── agents/                     # environment-reviewer, test-reviewer
 │   └── skills/vacuum-rl-report/    # Lab 5 skill: run + summarize Q-learning reports
+│   └── hooks.json                  # Claude Code event hooks 
 ├── vacuum/                         # shared simulator package
 │   ├── __init__.py
 │   └── environment.py
-├── scripts/demo.py                 # scripted demo (not Q-learning)
+├── scripts/
+│   ├── demo.py                     # scripted demo (not Q-learning)
+│   └── evaluate_mdp_hook.py        # MDP telemetry hook script
 ├── tests/test_environment.py       # simulator tests
 ├── docs/environment_specification.md
 ├── strategy_1/                     # Strategy 1: persistent memory
@@ -51,6 +54,7 @@ Python 3.10+; no third-party dependencies. From the repository root:
 ```bash
 python -m unittest discover -s tests -v                       # simulator tests
 python -m unittest discover -s strategy_1/testing -p "*.py"   # strategy 1 baseline/performance
+python scripts/evaluate_mdp_hook.py                           # test MDP evaluation hook directly
 python -m scripts.demo                                        # scripted demo
 python -m unittest discover -s lab_5/tests -t . -v            # Lab 5 Q-learning tests
 python -m lab_5.run_experiments                               # Lab 5 reports -> lab_5/reports/
@@ -73,6 +77,19 @@ python orchestrator.py pipeline "question"   # researcher -> implementer -> veri
 
 ## Important distinction
 The lab states T and R are unknown **to the agent**, not that a runnable simulator can operate without internal rules. This example uses a clearly labeled assumed stochastic model, documented in `docs/environment_specification.md`. No agent is given the transition or reward tables; the Lab 5 learner uses only `reset()` and `step()`.
+
+## Code Feature Implementation: Hooks (Group 20 - Individual Contribution)
+We implemented a `PostToolUse` event hook located in `.claude/hooks.json` that triggers `scripts/evaluate_mdp_hook.py`.
+
+### MDP Hyperparameters Tracked:
+- **Living Reward ($R_{live}$):** `-0.05`
+- **Discount Factor ($\gamma$):** `0.95`
+- **Learning Rate ($\alpha$):** `0.10`
+- **Epsilon ($\epsilon$):** `0.10`
+
+### How to Verify:
+```powershell
+echo '{"tool_name": "Bash"}' | python scripts/evaluate_mdp_hook.py
 
 ## Submission
 Submit `group_20.txt`, this `README.md`, and a video link to Canvas for Lab 4. Lab 5 deliverables are in `lab_5/`.
