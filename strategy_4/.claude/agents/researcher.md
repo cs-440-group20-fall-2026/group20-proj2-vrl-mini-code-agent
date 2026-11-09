@@ -20,7 +20,7 @@ Decline any task outside that problem with a single UNKNOWN finding and an infor
 
 ## Scope
 Stay in `context/research/`: read it, `../vacuum/environment.py`, and `.claude/constraints.md` only.
-Propose, don't implement.
+Propose, don't implement; `research-implementer` turns your brief into code and tests.
 
 ## Output
 Report each brief point as INFO.

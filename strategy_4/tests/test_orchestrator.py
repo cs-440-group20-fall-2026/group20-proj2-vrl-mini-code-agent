@@ -107,6 +107,32 @@ class TestOrchestratorConfig(unittest.TestCase):
         self.assertIn('## Research verification', testing)
         self.assertIn('python3 -m unittest', testing)
 
+    def test_verbose_command_streams(self):
+        quiet, loud = build_command('researcher'), build_command('researcher', verbose=True)
+        self.assertEqual(quiet[quiet.index('--output-format') + 1], 'json')
+        self.assertEqual(loud[loud.index('--output-format') + 1], 'stream-json')
+        self.assertIn('--verbose', loud)  # the CLI requires it for stream-json
+
+    def test_describe_stream_events(self):
+        tool = {'type': 'assistant', 'message': {'content': [
+            {'type': 'tool_use', 'name': 'Read', 'input': {'file_path': f'{STRATEGY}/context/testing.md'}}]}}
+        self.assertEqual(orchestrator.describe(tool), ['  -> Read context/testing.md'])
+        done = {'type': 'result', 'total_cost_usd': 0.1, 'num_turns': 3,
+                'permission_denials': [{'tool_name': 'Bash', 'tool_input': {'command': 'cat x'}}]}
+        self.assertEqual(orchestrator.describe(done),
+                         ['  done: $0.100, 3 turns, 1 denied', '  !! denied Bash cat x'])
+        self.assertEqual(orchestrator.describe({'type': 'system'}), [])
+
+    def test_verbose_flag_before_or_after_subcommand(self):
+        for argv, expected in [(['pipeline', 'q'], False), (['-v', 'pipeline', 'q'], True),
+                               (['pipeline', 'q', '--verbose'], True), (['review', '-v'], True)]:
+            with mock.patch.object(orchestrator, 'pipeline', return_value=[]), \
+                 mock.patch.object(orchestrator, 'run', return_value={'agent': 'x', 'findings': []}), \
+                 mock.patch('sys.argv', ['orchestrator.py', *argv]), mock.patch('sys.stdout'):
+                orchestrator.main()
+            self.assertEqual(orchestrator.VERBOSE, expected, argv)
+        orchestrator.VERBOSE = False
+
     def test_prompt_carries_constraints(self):
         self.assertTrue(orchestrator.build_prompt('task').startswith(CONSTRAINTS.read_text()))
         self.assertIn(SCHEMA.read_text(), orchestrator.build_prompt('task'))
@@ -132,6 +158,19 @@ class TestPipeline(unittest.TestCase):
         self.assertIn('UNKNOWN note 1 (x.py:1)', questions)
         self.assertNotIn('FAIL note', brief)
         self.assertNotIn('Open questions', build_brief('q', report('researcher', 'INFO')))
+
+    def test_brief_asks_for_code_and_tests(self):
+        brief = build_brief('q', report('researcher', 'INFO'))
+        self.assertIn('Python module', brief)
+        self.assertIn('test_*.py', brief)
+
+    def test_guard_skips_bytecode(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / '__pycache__').mkdir()
+            (Path(tmp) / '__pycache__' / 'runner.pyc').write_bytes(b'\xff\xfe bytecode')
+            (Path(tmp) / 'runner.py').write_text('policy = None\n')
+            with mock.patch.object(orchestrator, 'RESEARCH', Path(tmp)):
+                self.assertEqual(orchestrator.research_docs(), 'policy = None\n')
 
     def test_guard_catches_q_learning_terms(self):
         for text in ['Use Q-learning', 'a q table', 'Q(s, a)', 'Bellman backup', 'value iteration',
