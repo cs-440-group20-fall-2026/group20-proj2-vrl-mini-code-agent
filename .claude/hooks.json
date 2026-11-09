@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "command": "python3 scripts/evaluate_mdp_hook.py"
+      }
+    ]
+  }
+}
