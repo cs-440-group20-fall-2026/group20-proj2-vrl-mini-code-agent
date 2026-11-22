@@ -48,10 +48,10 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 │   ├── mini_coding_agent.py            # Upstream agent (commit 717cae4) + [Agent Skills] hooks
 │   ├── LICENSE-mini-coding-agent       # Upstream Apache-2.0 license
 │   ├── skills.py                       # Agent Skills component (discovery, similarity, triggers, log)
-│   ├── skills/                         # (planned) project-local folder skills
-│   │   └── pr-review/skill.md          # (planned) second skill, shows non-matching prompts
+│   ├── skills/                         # Agent-local folder skills
+│   │   └── pr-review/skill.md          # Unrelated skill; shows the vacuum skills are skipped off-topic
 │   ├── tests/
-│   │   └── test_skills.py              # 29 tests: discovery, similarity, triggers, log, agent loop
+│   │   └── test_skills.py              # 31 tests: discovery, similarity, triggers, log, agent loop
 │   ├── agent_skills.log                # (planned) audit log from the Lab 4 demo run
 │   └── test-report.md                  # (planned) SDLC stage 5: verification results
 ├── vacuum/                             # Lab 4 shared 4x4 simulator
@@ -85,11 +85,11 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 | 1. Intent | `intent.md` | Done |
 | 2. Specification | `spec.md` | Done |
 | 3. Plan | `plan.md` | Done |
-| 4. Implementation | `skills.py`, `mini_coding_agent.py`, `tests/test_skills.py` | Done; `skills/pr-review/` still planned |
+| 4. Implementation | `skills.py`, `mini_coding_agent.py`, `skills/pr-review/`, `tests/test_skills.py` | Done |
 | 5. Verification | `agent_skills.log`, `test-report.md`, full test run | Not started |
 | 6. Delivery | `group_20.txt`, video | Not started (`group_20.txt` still points to the Lab 4 repo) |
 
-All suites currently pass: `mini-coding-agent/tests/` (29), `tests/` (7), `lab_5/tests/`, `strategy_4/tests/` (35), and `strategy_1/testing/`.
+All suites currently pass: `mini-coding-agent/tests/` (31), `tests/` (7), `lab_5/tests/`, `strategy_4/tests/` (35), and `strategy_1/testing/`.
 
 ## Run
 Python 3.10+, standard library only. The agent uses a local Ollama model, as upstream does. The unit tests use upstream's `FakeModelClient`, so they don't need Ollama. Skill flags: `--skills-dir DIR` (repeatable), `--skills-log PATH`, `--skill-threshold 0.30`, and `--no-skills`. Inside the agent, `/skills` lists the discovered skills and the active one.
@@ -105,13 +105,13 @@ python mini-coding-agent/mini_coding_agent.py --cwd . --approval ask
 > Use Q-learning to train the vacuum robot to reach the charger in the Lab 4 grid and report the best configuration.
 ```
 
-Every prompt adds a line to `mini-coding-agent/agent_skills.log`. The example below shows real scores for this prompt against the three current skills, with `matched_terms` shortened:
+Every prompt adds a line to `mini-coding-agent/agent_skills.log`. The example below shows real scores for this prompt against the four current skills, with `matched_terms` shortened:
 
 ```json
 {"timestamp": "...", "trigger_type": "prompt_similarity", "prompt": "Use Q-learning to train the vacuum robot ...",
- "similarity_check": {"scores": {"vacuum-rl-analyzer": 0.4444, "vacuum-rl-report": 0.5556, "vacuum-rl-validator": 0.2222},
+ "similarity_check": {"scores": {"vacuum-rl-analyzer": 0.4451, "vacuum-rl-report": 0.5561, "vacuum-rl-validator": 0.2231, "pr-review": 0.0478},
  "matched_terms": {"vacuum-rl-report": ["charger", "lab", "qlearn", "report", "robot", "train", "vacuum"], "...": []},
- "best_skill": "vacuum-rl-report", "best_score": 0.5556, "threshold": 0.3},
+ "best_skill": "vacuum-rl-report", "best_score": 0.5561, "threshold": 0.3},
  "executed_skill": "vacuum-rl-report", "skill_path": ".claude/skills/vacuum-rl-report/SKILL.md"}
 ```
 

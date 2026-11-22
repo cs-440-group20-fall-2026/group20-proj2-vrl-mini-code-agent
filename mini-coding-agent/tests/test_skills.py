@@ -114,6 +114,13 @@ class DiscoveryTests(SkillTestCase):
             ".claude/skills/vacuum-rl-report/SKILL.md",
         )
 
+    def test_repository_discovers_agent_local_pr_review_skill(self):
+        manager = SkillManager(REPO_ROOT, log_path=None)
+        self.assertEqual(
+            manager.relative_path(manager.skills["pr-review"].path),
+            "mini-coding-agent/skills/pr-review/skill.md",
+        )
+
 
 class SimilarityTests(SkillTestCase):
     def test_tokenize_normalizes_q_learning_variants(self):
@@ -151,6 +158,22 @@ class SimilarityTests(SkillTestCase):
         check = manager.similarity_check(LAB4_PROMPT)
         self.assertEqual(check["best_skill"], "vacuum-rl-report")
         self.assertGreaterEqual(check["best_score"], manager.threshold)
+        self.assertLess(check["scores"]["pr-review"], manager.threshold)
+
+    def test_repository_prompts_route_to_expected_skill(self):
+        manager = SkillManager(REPO_ROOT, log_path=None)
+        expected = {
+            "Review this pull request for bugs": "pr-review",
+            "Can you code review the changes on my branch?": "pr-review",
+            "Which living reward and gamma gave the best results? Explain the tradeoffs.": "vacuum-rl-analyzer",
+            "Validate the Q-learning implementation and test coverage": "vacuum-rl-validator",
+            "Regenerate the Lab 5 reports": "vacuum-rl-report",
+            "Write a binary search function in Python": None,
+        }
+        for prompt, skill_name in expected.items():
+            with self.subTest(prompt=prompt):
+                activation = manager.match_and_trigger(prompt)
+                self.assertEqual(activation.skill.name if activation else None, skill_name)
 
 
 class TriggerAndLogTests(SkillTestCase):

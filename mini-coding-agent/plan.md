@@ -26,7 +26,7 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
   4. Add CLI flags `--skills-dir`, `--skills-log`, `--skill-threshold`, and `--no-skills`.
   5. Write `mini-coding-agent/tests/test_skills.py`, covering discovery, similarity, the threshold boundary, both triggers, log fields, and agent integration through `FakeModelClient`.
 
-## Phase 4: Second Skill (non-match evidence)
+## Phase 4: Second Skill (non-match evidence) ✅
 - **Deliverables:** `mini-coding-agent/skills/pr-review/skill.md`
 - **Tasks:** Add an unrelated skill so the log shows the similarity check choosing between unrelated skills and not triggering on off-topic prompts.
 
