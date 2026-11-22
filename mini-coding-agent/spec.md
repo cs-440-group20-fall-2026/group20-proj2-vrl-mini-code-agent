@@ -1,37 +1,47 @@
 # Specification: Agent Skills Component
 
 ## 1. System Architecture Integration
-The Agent Skills Component (`skills.py`) plugs into `mini_coding_agent.py` alongside the existing six components without breaking standard library compatibility or Ollama `/api/generate` communication:
-- **Workspace Snapshot & Prompt Prefix:** Discovered skill names and descriptions are registered in the workspace metadata so the model knows which skills exist without bloating the static prompt prefix.
-- **Pre-Turn Prompt Hook:** Before sending a user turn to Ollama, `SkillManager.match_and_trigger(prompt)` computes similarity scores against registered skills and injects matched `skill.md` instructions into the turn state.
-- **Mid-Execution Tool Hook:** A structured tool (`use_skill` / `load_skill`) allows the agent to request and execute a specific `skill.md` during its `<tool>...</tool>` reasoning loop when a subtask requires specialized domain instructions.
+The Agent Skills Component (`mini-coding-agent/skills.py`) plugs into the vendored `mini-coding-agent/mini_coding_agent.py` alongside the six existing components. It keeps standard-library-only compatibility and the Ollama `/api/generate` client. Every change to the upstream file is marked `[Agent Skills]`.
+- **Prompt prefix:** the names and descriptions of discovered skills are listed in a `Skills:` section of the static prefix. The full instructions are not included, so the prefix stays small and cache-stable.
+- **Pre-turn prompt hook:** in `MiniAgent.ask()`, before the first model call, `SkillManager.match_and_trigger(prompt)` scores the prompt against every skill. A matching skill's instructions go into an `Active skill` prompt section.
+- **Mid-execution tool hook:** a structured `load_skill(name, reason)` tool (safe, no approval needed) lets the model request a skill from inside its `<tool>...</tool>` loop.
+- **Active skill persistence:** the active skill is stored in `session["active_skill"]`, outside the clipped transcript, so the model sees every step for the whole turn. It survives `--resume`, stays active through follow-up prompts that match no skill, and is cleared by `/reset`.
 
 ## 2. Functional Requirements
 
 ### FR-1: Folder Skill Discovery
-- Scan `skills/` (and support `skill/` alias if present) for subdirectories containing a `skill.md` file.
-- Parse each `skill.md` to extract its skill identifier (folder name), title/objective, keywords, and full markdown instructions.
+- Scan these directories, relative to the workspace root, in order: `.claude/skills/`, `mini-coding-agent/skills/`, `skills/`, `skill/`. Then scan the agent's own `skills/` folder and any `--skills-dir` arguments.
+- A skill is a subfolder containing `skill.md` or `SKILL.md`. Folders without one, and directories that don't exist, are ignored.
+- Read optional `---` frontmatter: `name` (default: the folder name), `description` (default: the first body paragraph), and `keywords` (comma list). The frontmatter is removed from the instructions.
+- If two skills have the same name, the first directory in scan order wins.
 
 ### FR-2: Similarity Check & Thresholding
-- Compute a normalized similarity score in $[0.0, 1.0]$ between the incoming prompt (or execution query) and each registered skill using token overlap, n-gram/phrase matching, and keyword weighting.
-- Configurable confidence threshold (default `0.30`). If the highest-scoring skill meets or exceeds the threshold, select it for execution.
+- Tokenize the prompt: lowercase, drop stopwords and one-character tokens, apply light suffix stemming, and normalize `Q-learning`/`q learning` to one token.
+- A skill's vocabulary is the tokens of its name, description, and keywords.
+- **Score** = the IDF-weighted share of the prompt's tokens that appear in the skill's vocabulary. IDF is computed across all registered skills as `ln(1 + N / df)`. Words that every skill shares (such as *vacuum*) count less than words distinctive to one skill (such as *train*). The score is in [0.0, 1.0].
+- **Phrase match:** if the prompt contains the skill's name, either `vacuum-rl-report` or `vacuum rl report`, the score is 0.95.
+- **Threshold:** the default is `0.30` and can be changed with `--skill-threshold`. The highest-scoring skill is executed if its score is greater than or equal to the threshold. Ties go to the alphabetically first name. If every score is 0, `best_skill` is `null`.
 
 ### FR-3: Instruction Execution & Context Injection
-- When triggered by prompt similarity or mid-execution request, return the full `skill.md` instructions to the agent so it executes the workflow step-by-step using its structured tools (file read/edit, shell commands under approval gates).
+- When a skill is triggered, by prompt similarity or by `load_skill`, its rendered instructions (header, path, and body, with `$ARGUMENTS` blanked) are placed in the `Active skill` section of every model prompt for the rest of the turn.
+- The agent carries out the steps with its existing tools, under the existing approval gates. Skills never bypass `run_shell` or `write_file` approval.
+- An unknown skill name in `load_skill` returns a tool error that lists the available skills.
 
 ### FR-4: Mandatory Audit Logging (`agent_skills.log`)
-Every skill evaluation—whether triggered by a user prompt or invoked mid-execution—must append a structured log entry to `agent_skills.log` containing:
-- `timestamp`: ISO-8601 timestamp
+Every evaluation, whether or not a skill runs, appends one JSON line to `mini-coding-agent/agent_skills.log` (configurable with `--skills-log`):
+- `timestamp`: ISO-8601 UTC
 - `trigger_type`: `"prompt_similarity"` or `"agent_mid_execution"`
-- `prompt`: The exact user prompt or agent query evaluated
-- `similarity_check`: Dictionary of `{skill_name: score}` plus `best_skill`, `best_score`, and `threshold`
-- `executed_skill`: Name of the triggered skill (or `null` if none met the threshold)
-- `skill_path`: Relative path to the executed `skill.md` (or `null`)
+- `prompt`: the user prompt, or the agent's `reason` for a mid-execution request
+- `similarity_check`: `{scores: {skill: score}, matched_terms: {skill: [tokens]}, best_skill, best_score, threshold}`
+- `executed_skill`: the triggered skill's name, or `null`
+- `skill_path`: the workspace-relative path to its `skill.md`, or `null`
+- `requested_skill`: only for mid-execution requests; the name the agent asked for
 
 ### FR-5: Domain Constraints (Lab 5 Skill solving Lab 4)
-- The `vacuum-rl-optimizer` skill instructs the agent to solve Lab 4's 4x4 grid (`Start (0,0)`, `Obstacle (1,1)`, `Trap (3,1) = -1`, `Charger (3,3) = +10`) using Lab 5's model-free tabular Q-learning (`lab_5/q_learning.py`, `lab_5/run_experiments.py`).
-- Strict black-box boundary: the learner interacts only via `env.reset()` and `env.step(action)` and never reads internal transition ($T$) or reward ($R$) tables.
+- The skill used is the actual Lab 5 skill, `.claude/skills/vacuum-rl-report/SKILL.md`, which is discovered in place without being copied. It instructs the agent to run the Lab 5 tests and `python -m lab_5.run_experiments`, then summarize charger success, trap rate, mean reward, and mean steps on the Lab 4 grid (start `(0,0)`, obstacle `(1,1)`, trap `(3,1) = -1`, charger `(3,3) = +10`).
+- Strict black-box boundary: the learner uses only `env.reset()` and `env.step(action)` and never reads the hidden transition ($T$) or reward ($R$) tables.
 
 ## 3. Non-Functional Requirements
-- **Zero External Python Dependencies:** Uses only Python 3.10+ standard library (`pathlib`, `json`, `logging`, `re`, `datetime`, `difflib`) to match `rasbt/mini-coding-agent`.
-- **Deterministic & Auditable:** All skill checks are persisted cleanly to `agent_skills.log` for inspection and grading.
+- **No external Python dependencies:** Python 3.10+ standard library only (`pathlib`, `json`, `math`, `re`, `datetime`). Tests use `unittest`.
+- **Deterministic & auditable:** the same prompt always gives the same scores. Tests inject a fixed clock and write logs to temporary directories.
+- **Upstream-compatible:** with `--no-skills`, or with no skills found, the agent behaves like upstream: no `load_skill` tool, no `Skills:` section, no log writes.

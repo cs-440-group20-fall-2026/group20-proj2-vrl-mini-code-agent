@@ -1,38 +1,47 @@
 # Execution Plan: Agent Skills Component & Lab 4/5 Integration
 
-## Phase 1: SDLC & Repository Setup
-- **Deliverables:** `intent.md`, `spec.md`, `plan.md`, `skills/vacuum-rl-optimizer/skill.md`
-- **Tasks:**
-  1. Establish SDLC tracking documents in the repository root.
-  2. Create the `skills/` directory structure and port the Lab 5 Q-learning evaluation workflow into `skills/vacuum-rl-optimizer/skill.md`.
+All Project 2 code lives in `mini-coding-agent/`. The agent runs with the repository root as its workspace (`--cwd .`), so it can reach `vacuum/`, `lab_5/`, and `.claude/skills/`.
 
-## Phase 2: Implement Agent Skills Component (`skills.py`)
-- **Deliverables:** `skills.py`
+## Phase 1: SDLC & Repository Setup ✅
+- **Deliverables:** `intent.md`, `spec.md`, `plan.md`
 - **Tasks:**
-  1. Build `SkillManager` to recursively discover `skills/*/skill.md` files and store metadata + markdown instructions.
-  2. Implement `compute_similarity(prompt, skill)` combining exact phrase checks, token Jaccard/overlap ratios, and keyword matching.
-  3. Implement `match_and_trigger(prompt, threshold=0.3)` for automatic prompt-level activation.
-  4. Implement `execute_skill_by_name(skill_name, reason)` so the coding agent can request a skill dynamically mid-execution.
-  5. Configure JSON-line audit logging to `agent_skills.log` capturing every prompt, similarity check breakdown, and executed skill.
+  1. Write the SDLC documents in `mini-coding-agent/`.
+  2. Use the existing Lab 5 skill, `.claude/skills/vacuum-rl-report/SKILL.md`, in place rather than a copy. Discovery covers `.claude/skills/` and accepts both `SKILL.md` and `skill.md`.
 
-## Phase 3: Wire Component into `mini_coding_agent.py`
-- **Deliverables:** Updated `mini_coding_agent.py`
+## Phase 2: Implement Agent Skills Component (`skills.py`) ✅
+- **Deliverables:** `mini-coding-agent/skills.py`
 - **Tasks:**
-  1. Initialize `SkillManager` during workspace snapshot collection and list available skills in the system prompt summary.
-  2. Run `skill_manager.match_and_trigger(user_input)` at the start of each user turn and inject matched `skill.md` instructions into the turn context.
-  3. Register a `load_skill` tool in the agent's structured tool registry so the LLM can invoke a skill mid-execution when needed.
+  1. `SkillManager.discover()`: register `<dir>/<name>/skill.md|SKILL.md` and parse the frontmatter.
+  2. `compute_similarity(prompt, skill)`: IDF-weighted token coverage plus a skill-name phrase match.
+  3. `match_and_trigger(prompt)`: prompt-level activation at threshold 0.30.
+  4. `execute_skill_by_name(name, reason)`: mid-execution activation.
+  5. JSON-lines audit log to `agent_skills.log` recording the prompt, the similarity check, and the executed skill (spec FR-4).
 
-## Phase 4: Solve Lab 4 Using Lab 5 Skill & Verify Tests
-- **Deliverables:** `agent_skills.log`, verified test suite outputs
+## Phase 3: Wire Component into `mini_coding_agent.py` ✅
+- **Deliverables:** `mini-coding-agent/mini_coding_agent.py`, vendored from upstream commit `717cae4` with `LICENSE-mini-coding-agent`
 - **Tasks:**
-  1. Launch `mini_coding_agent.py` (with Ollama running `qwen3.5:4b`) and prompt it to solve/optimize Lab 4 vacuum navigation using the Lab 5 Q-learning skill.
-  2. Verify the agent triggers `skills/vacuum-rl-optimizer/skill.md`, runs `lab_5.run_experiments` (confirming optimal configuration: `living_reward=-0.04, gamma=0.99, alpha=0.1, epsilon=0.3` achieving `100.0%` charger success and `0.0%` trap rate), and validates Lab 4 environment constraints.
-  3. Run all unit tests (`tests/test_environment.py`, `lab_5/tests/test_q_learning.py`, `lab_5/tests/test_reports.py`, `strategy_1/testing/`, `strategy_4/tests/`).
-  4. Inspect `agent_skills.log` to confirm prompts, similarity scores, and executed skills are logged accurately.
+  1. Build a `SkillManager` in `build_agent()`, list the skills in the prompt prefix and the welcome banner, and add a `/skills` command.
+  2. Run `match_and_trigger(user_input)` at the start of `ask()` and inject the instructions as an `Active skill` prompt section.
+  3. Register the `load_skill` tool for mid-execution requests.
+  4. Add CLI flags `--skills-dir`, `--skills-log`, `--skill-threshold`, and `--no-skills`.
+  5. Write `mini-coding-agent/tests/test_skills.py`, covering discovery, similarity, the threshold boundary, both triggers, log fields, and agent integration through `FakeModelClient`.
 
-## Phase 5: Documentation & Canvas Submission
-- **Deliverables:** `README.md`, `group_20.txt`, 3-minute group video
+## Phase 4: Second Skill (non-match evidence)
+- **Deliverables:** `mini-coding-agent/skills/pr-review/skill.md`
+- **Tasks:** Add an unrelated skill so the log shows the similarity check choosing between unrelated skills and not triggering on off-topic prompts.
+
+## Phase 5: Solve Lab 4 Using Lab 5 Skill & Verify
+- **Deliverables:** `agent_skills.log`, `test-report.md`
 - **Tasks:**
-  1. Document the complete file tree, component architecture, and CLI execution commands in `README.md`.
-  2. Add repository links and the private video URL to `group_20.txt`.
-  3. Record a ≤3-minute presentation with all 3 members on camera (professional background, equal speaking time) covering SDLC decisions, `skills.py` implementation, live execution, and `agent_skills.log`.
+  1. With Ollama running (`qwen3.5:4b` by default), run `python mini-coding-agent/mini_coding_agent.py --cwd . --max-steps 10` and prompt it to solve Lab 4 with Q-learning.
+  2. Confirm the log shows a `prompt_similarity` entry with `executed_skill: vacuum-rl-report`, and that the agent runs the skill's test and experiment commands. `run_shell` caps timeouts at 120 s, so the run may need `--quick`.
+  3. Check the reported best configuration against `lab_5/reports/report.md`. Don't quote numbers the run did not produce.
+  4. Run every suite: `mini-coding-agent/tests/`, `tests/`, `lab_5/tests/`, `strategy_1/testing/`, and `strategy_4/tests/`.
+  5. Record the results in `test-report.md` (SDLC verification stage).
+
+## Phase 6: Documentation & Canvas Submission
+- **Deliverables:** `README.md` (root and `mini-coding-agent/`), `group_20.txt`, 3-minute group video
+- **Tasks:**
+  1. Keep the file tree and run commands in the READMEs accurate, and link Project 2 from the root README.
+  2. Point `group_20.txt` at this repository and the private video URL.
+  3. Record a ≤3-minute presentation with all 3 members on camera covering the SDLC documents, `skills.py`, a live run, and `agent_skills.log`.
