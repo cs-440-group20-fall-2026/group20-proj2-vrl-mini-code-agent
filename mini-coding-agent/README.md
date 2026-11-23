@@ -90,7 +90,7 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 | 3. Plan | `plan.md` | Done |
 | 4. Implementation | `skills.py`, `verify_skills_log.py`, `mini_coding_agent.py`, `skills/pr-review/`, `tests/` | Done |
 | 5. Verification | `agent_skills.log`, `test-report.md`, full test run | Done. The live agent solved Lab 4 with the Lab 5 skill (100.0% charger success, 0.0% trap rate), and the log verifies |
-| 6. Delivery | `group_20.txt`, video | Not started (`group_20.txt` still points to the Lab 4 repo) |
+| 6. Delivery | `group_20.txt`, root `README.md`, video | Links and READMEs done. The video is still to do; its private link goes only in the Canvas copy of `group_20.txt`, since the repository is public |
 
 All suites currently pass: `mini-coding-agent/tests/` (59), `tests/` (7), `lab_5/tests/`, `strategy_4/tests/` (35), and `strategy_1/testing/`.
 
