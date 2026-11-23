@@ -37,6 +37,17 @@ Every evaluation, whether or not a skill runs, appends one JSON line to `mini-co
 - `skill_path`: the workspace-relative path to its `skill.md`, or `null`
 - `requested_skill`: only for mid-execution requests; the name the agent asked for
 
+**Verification (`verify_skills_log.py`).** A log is valid when every line is a JSON object with the fields above and these rules hold:
+- `timestamp` parses as ISO-8601, and every score and the `threshold` are numbers in [0, 1].
+- `best_score` is the highest score, and `best_skill` has it. If all scores are 0, both are `null`/0.
+- Prompt trigger: `executed_skill` is `best_skill` when `best_score ≥ threshold`, otherwise `null`.
+- Mid-execution trigger: `executed_skill` is `requested_skill` if that skill exists, otherwise `null`.
+- `skill_path` is set exactly when `executed_skill` is, and points to an existing file under the workspace root.
+
+### FR-1 parsing details
+- Skill files are read as UTF-8 with an optional BOM. `keywords` may be a comma list, an inline `[a, b]` list, or a YAML block list (`- item`).
+- A skill-name phrase match must sit on word boundaries, so `pr review` doesn't match inside `appr reviewer`.
+
 ### FR-5: Domain Constraints (Lab 5 Skill solving Lab 4)
 - The skill used is the actual Lab 5 skill, `.claude/skills/vacuum-rl-report/SKILL.md`, which is discovered in place without being copied. It instructs the agent to run the Lab 5 tests and `python -m lab_5.run_experiments`, then summarize charger success, trap rate, mean reward, and mean steps on the Lab 4 grid (start `(0,0)`, obstacle `(1,1)`, trap `(3,1) = -1`, charger `(3,3) = +10`).
 - Strict black-box boundary: the learner uses only `env.reset()` and `env.step(action)` and never reads the hidden transition ($T$) or reward ($R$) tables.

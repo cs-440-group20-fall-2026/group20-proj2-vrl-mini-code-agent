@@ -16,6 +16,7 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
   3. `match_and_trigger(prompt)`: prompt-level activation at threshold 0.30.
   4. `execute_skill_by_name(name, reason)`: mid-execution activation.
   5. JSON-lines audit log to `agent_skills.log` recording the prompt, the similarity check, and the executed skill (spec FR-4).
+  6. `verify_skills_log.py`: check a log against FR-4, plus a `--selfcheck` mode that writes and verifies a log offline. Tests feed it tampered records to show each rule catches a bad line.
 
 ## Phase 3: Wire Component into `mini_coding_agent.py` ✅
 - **Deliverables:** `mini-coding-agent/mini_coding_agent.py`, vendored from upstream commit `717cae4` with `LICENSE-mini-coding-agent`
@@ -34,7 +35,7 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
 - **Deliverables:** `agent_skills.log`, `test-report.md`
 - **Tasks:**
   1. With Ollama running (`qwen3.5:4b` by default), run `python mini-coding-agent/mini_coding_agent.py --cwd . --max-steps 10` and prompt it to solve Lab 4 with Q-learning.
-  2. Confirm the log shows a `prompt_similarity` entry with `executed_skill: vacuum-rl-report`, and that the agent runs the skill's test and experiment commands. `run_shell` caps timeouts at 120 s, so the run may need `--quick`.
+  2. Run `python mini-coding-agent/verify_skills_log.py` on the live log. It must exit 0. Then confirm the log shows a `prompt_similarity` entry with `executed_skill: vacuum-rl-report`, and that the agent runs the skill's test and experiment commands. `run_shell` caps timeouts at 120 s, so the run may need `--quick`.
   3. Check the reported best configuration against `lab_5/reports/report.md`. Don't quote numbers the run did not produce.
   4. Run every suite: `mini-coding-agent/tests/`, `tests/`, `lab_5/tests/`, `strategy_1/testing/`, and `strategy_4/tests/`.
   5. Record the results in `test-report.md` (SDLC verification stage).

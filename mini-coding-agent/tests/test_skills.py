@@ -101,6 +101,27 @@ class DiscoveryTests(SkillTestCase):
         skill = self.manager().skills["lint-fixer"]
         self.assertEqual(skill.description, "Fix flake8 warnings in changed files.")
 
+    def test_frontmatter_survives_utf8_bom(self):
+        path = self.root / "skills" / "bom-skill"
+        path.mkdir()
+        (path / "skill.md").write_bytes("﻿---\nname: bom-skill\ndescription: Saved by a Windows editor.\n---\n# Body\n".encode("utf-8"))
+        skill = self.manager().skills["bom-skill"]
+        self.assertEqual(skill.description, "Saved by a Windows editor.")
+        self.assertTrue(skill.body.startswith("# Body"))
+
+    def test_yaml_list_keywords(self):
+        write_skill(
+            self.root / "skills", "deployer",
+            "---\nname: deployer\ndescription: Ship it.\nkeywords:\n  - kubernetes\n  - helm chart\n---\nBody\n",
+        )
+        skill = self.manager().skills["deployer"]
+        self.assertEqual(skill.keywords, ["kubernetes", "helm chart"])
+        self.assertIn("kubernet", skill.vocabulary)
+
+    def test_inline_list_keywords(self):
+        write_skill(self.root / "skills", "lister", "---\nname: lister\ndescription: x\nkeywords: [alpha, \"beta\"]\n---\n")
+        self.assertEqual(self.manager().skills["lister"].keywords, ["alpha", "beta"])
+
     def test_first_directory_wins_on_name_clash(self):
         write_skill(self.root / "other", "grid-trainer", "---\nname: grid-trainer\ndescription: shadow copy\n---\n")
         manager = self.manager(skill_dirs=["skills", "other"])
@@ -148,6 +169,10 @@ class SimilarityTests(SkillTestCase):
         manager = self.manager()
         self.assertEqual(manager.similarity_check("please use grid-trainer")["scores"]["grid-trainer"], NAME_MATCH_SCORE)
         self.assertEqual(manager.similarity_check("run the pr review skill")["scores"]["pr-review"], NAME_MATCH_SCORE)
+
+    def test_name_match_requires_word_boundaries(self):
+        score = self.manager().similarity_check("the appr reviewer approved it")["scores"]["pr-review"]
+        self.assertLess(score, NAME_MATCH_SCORE)
 
     def test_similarity_is_deterministic(self):
         manager = self.manager()

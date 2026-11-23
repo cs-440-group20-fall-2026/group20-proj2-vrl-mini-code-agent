@@ -71,11 +71,19 @@ def parse_frontmatter(text):
     else:
         return {}, text
     metadata = {}
+    last_key = None
     for line in lines[1:end]:
+        stripped = line.strip()
+        # YAML block list item ("  - value") belonging to the previous key.
+        if stripped.startswith("- ") and last_key is not None and line[:1] in (" ", "\t", "-"):
+            item = stripped[2:].strip().strip('"').strip("'")
+            metadata[last_key] = ", ".join(filter(None, [metadata[last_key], item]))
+            continue
         if ":" not in line or line.startswith((" ", "\t")):
             continue
         key, value = line.split(":", 1)
-        metadata[key.strip().lower()] = value.strip().strip('"').strip("'")
+        last_key = key.strip().lower()
+        metadata[last_key] = value.strip().strip('"').strip("'")
     return metadata, "\n".join(lines[end + 1:]).lstrip("\n")
 
 
@@ -108,7 +116,8 @@ class Skill:
     @classmethod
     def from_file(cls, path):
         path = Path(path)
-        metadata, body = parse_frontmatter(path.read_text(encoding="utf-8", errors="replace"))
+        # utf-8-sig drops a BOM (common from Windows editors) that would hide the frontmatter.
+        metadata, body = parse_frontmatter(path.read_text(encoding="utf-8-sig", errors="replace"))
         name = metadata.get("name") or path.parent.name
         description = metadata.get("description") or first_paragraph(body)
         raw_keywords = metadata.get("keywords", "").strip("[]")
@@ -185,8 +194,10 @@ class SkillManager:
         NAME_MATCH_SCORE.
         """
         lowered = str(prompt).lower()
-        if skill.name.lower() in lowered or skill.name.lower().replace("-", " ") in lowered:
-            return NAME_MATCH_SCORE, sorted(skill.vocabulary & set(tokenize(prompt)))
+        name = skill.name.lower()
+        for form in {name, name.replace("-", " ")}:
+            if re.search(r"(?<![a-z0-9])" + re.escape(form) + r"(?![a-z0-9])", lowered):
+                return NAME_MATCH_SCORE, sorted(skill.vocabulary & set(tokenize(prompt)))
         prompt_tokens = set(tokenize(prompt))
         if not prompt_tokens:
             return 0.0, []
