@@ -2,13 +2,13 @@
 
 All Project 2 code lives in `mini-coding-agent/`. The agent runs with the repository root as its workspace (`--cwd .`), so it can reach `vacuum/`, `lab_5/`, and `.claude/skills/`.
 
-## Phase 1: SDLC & Repository Setup ✅
+## Phase 1: SDLC & Repository Setup 
 - **Deliverables:** `intent.md`, `spec.md`, `plan.md`
 - **Tasks:**
   1. Write the SDLC documents in `mini-coding-agent/`.
   2. Use the existing Lab 5 skill, `.claude/skills/vacuum-rl-report/SKILL.md`, in place rather than a copy. Discovery covers `.claude/skills/` and accepts both `SKILL.md` and `skill.md`.
 
-## Phase 2: Implement Agent Skills Component (`skills.py`) ✅
+## Phase 2: Implement Agent Skills Component (`skills.py`) 
 - **Deliverables:** `mini-coding-agent/skills.py`
 - **Tasks:**
   1. `SkillManager.discover()`: register `<dir>/<name>/skill.md|SKILL.md` and parse the frontmatter.
@@ -18,7 +18,7 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
   5. JSON-lines audit log to `agent_skills.log` recording the prompt, the similarity check, and the executed skill (spec FR-4).
   6. `verify_skills_log.py`: check a log against FR-4, plus a `--selfcheck` mode that writes and verifies a log offline. Tests feed it tampered records to show each rule catches a bad line.
 
-## Phase 3: Wire Component into `mini_coding_agent.py` ✅
+## Phase 3: Wire Component into `mini_coding_agent.py` 
 - **Deliverables:** `mini-coding-agent/mini_coding_agent.py`, vendored from upstream commit `717cae4` with `LICENSE-mini-coding-agent`
 - **Tasks:**
   1. Build a `SkillManager` in `build_agent()`, list the skills in the prompt prefix and the welcome banner, and add a `/skills` command.
@@ -27,11 +27,11 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
   4. Add CLI flags `--skills-dir`, `--skills-log`, `--skill-threshold`, and `--no-skills`.
   5. Write `mini-coding-agent/tests/test_skills.py`, covering discovery, similarity, the threshold boundary, both triggers, log fields, and agent integration through `FakeModelClient`.
 
-## Phase 4: Second Skill (non-match evidence) ✅
+## Phase 4: Second Skill (non-match evidence) 
 - **Deliverables:** `mini-coding-agent/skills/pr-review/skill.md`
 - **Tasks:** Add an unrelated skill so the log shows the similarity check choosing between unrelated skills and not triggering on off-topic prompts.
 
-## Phase 5: Solve Lab 4 Using Lab 5 Skill & Verify ✅
+## Phase 5: Solve Lab 4 Using Lab 5 Skill & Verify 
 Done on 2026-11-22; see `test-report.md`. The first live run found four agent defects, which are now fixed and tested. The rerun solved Lab 4.
 - **Deliverables:** `agent_skills.log`, `test-report.md`
 - **Tasks:**
