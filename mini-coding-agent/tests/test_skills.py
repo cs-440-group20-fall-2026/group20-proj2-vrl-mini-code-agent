@@ -101,6 +101,27 @@ class DiscoveryTests(SkillTestCase):
         skill = self.manager().skills["lint-fixer"]
         self.assertEqual(skill.description, "Fix flake8 warnings in changed files.")
 
+    def test_frontmatter_survives_utf8_bom(self):
+        path = self.root / "skills" / "bom-skill"
+        path.mkdir()
+        (path / "skill.md").write_bytes("﻿---\nname: bom-skill\ndescription: Saved by a Windows editor.\n---\n# Body\n".encode("utf-8"))
+        skill = self.manager().skills["bom-skill"]
+        self.assertEqual(skill.description, "Saved by a Windows editor.")
+        self.assertTrue(skill.body.startswith("# Body"))
+
+    def test_yaml_list_keywords(self):
+        write_skill(
+            self.root / "skills", "deployer",
+            "---\nname: deployer\ndescription: Ship it.\nkeywords:\n  - kubernetes\n  - helm chart\n---\nBody\n",
+        )
+        skill = self.manager().skills["deployer"]
+        self.assertEqual(skill.keywords, ["kubernetes", "helm chart"])
+        self.assertIn("kubernet", skill.vocabulary)
+
+    def test_inline_list_keywords(self):
+        write_skill(self.root / "skills", "lister", "---\nname: lister\ndescription: x\nkeywords: [alpha, \"beta\"]\n---\n")
+        self.assertEqual(self.manager().skills["lister"].keywords, ["alpha", "beta"])
+
     def test_first_directory_wins_on_name_clash(self):
         write_skill(self.root / "other", "grid-trainer", "---\nname: grid-trainer\ndescription: shadow copy\n---\n")
         manager = self.manager(skill_dirs=["skills", "other"])
@@ -148,6 +169,10 @@ class SimilarityTests(SkillTestCase):
         manager = self.manager()
         self.assertEqual(manager.similarity_check("please use grid-trainer")["scores"]["grid-trainer"], NAME_MATCH_SCORE)
         self.assertEqual(manager.similarity_check("run the pr review skill")["scores"]["pr-review"], NAME_MATCH_SCORE)
+
+    def test_name_match_requires_word_boundaries(self):
+        score = self.manager().similarity_check("the appr reviewer approved it")["scores"]["pr-review"]
+        self.assertLess(score, NAME_MATCH_SCORE)
 
     def test_similarity_is_deterministic(self):
         manager = self.manager()
@@ -306,6 +331,77 @@ class AgentIntegrationTests(SkillTestCase):
         self.assertEqual(agent.session["active_skill"]["path"], ".claude/skills/vacuum-rl-report/SKILL.md")
         self.assertIn("env.reset()", agent.model_client.prompts[0])
         self.assertEqual(self.log_records()[0]["executed_skill"], "vacuum-rl-report")
+
+
+class LiveRunRegressionTests(SkillTestCase):
+    """Failures seen in the first live Ollama run (2026-11-22), fixed in mini_coding_agent.py."""
+
+    agent = AgentIntegrationTests.agent
+
+    def test_latest_read_of_report_shows_best_configuration(self):
+        manager = SkillManager(REPO_ROOT, log_path=self.log_path)
+        agent = self.agent(
+            ['<tool>{"name":"read_file","args":{"path":"lab_5/reports/report.md","start":1,"end":200}}</tool>',
+             "<final>done</final>"],
+            skill_manager=manager, workspace_root=REPO_ROOT,
+        )
+        agent.ask(LAB4_PROMPT)
+        second_prompt = agent.model_client.prompts[1]
+        self.assertIn("## Best configuration", second_prompt)
+        self.assertIn("100.0% charger success", second_prompt.split("## Best configuration", 1)[1])
+
+    def test_older_tool_output_is_still_clipped(self):
+        agent = self.agent([])
+        for name in ("first", "second"):
+            agent.record({"role": "tool", "name": "search", "args": {"pattern": name}, "content": name * 600, "created_at": "-"})
+        text = agent.history_text()
+        self.assertIn("second" * 600, text)
+        self.assertNotIn("first" * 600, text)
+
+    def test_long_transcript_keeps_newest_items(self):
+        from mini_coding_agent import MAX_HISTORY
+
+        agent = self.agent([])
+        for index in range(40):
+            agent.record({"role": "user", "content": f"message-{index} " + "x" * 800, "created_at": "-"})
+        text = agent.history_text()
+        self.assertLessEqual(len(text), MAX_HISTORY)
+        self.assertTrue(text.startswith("[earlier transcript truncated]"))
+        self.assertIn("message-39", text)
+        self.assertNotIn("message-0 ", text)
+
+    def test_xml_load_skill_keeps_name_and_reason(self):
+        kind, payload = MiniAgent.parse('<tool name="load_skill"><name>pr-review</name><reason>check diff</reason></tool>')
+        self.assertEqual(kind, "tool")
+        self.assertEqual(payload["args"], {"name": "pr-review", "reason": "check diff"})
+
+    def test_xml_read_file_keeps_line_range(self):
+        _, payload = MiniAgent.parse('<tool name="read_file"><path>README.md</path><start>1</start><end>40</end></tool>')
+        self.assertEqual(payload["args"], {"path": "README.md", "start": "1", "end": "40"})
+
+    def test_reloading_active_skill_is_a_no_op(self):
+        agent = self.agent(["<final>done</final>"])
+        agent.ask("train the robot with Q-learning")
+        before = len(self.log_records())
+        result = agent.run_tool("load_skill", {"name": "grid-trainer"})
+        self.assertIn("already active", result)
+        self.assertEqual(len(self.log_records()), before)
+        self.assertEqual(agent.session["active_skill"]["trigger_type"], TRIGGER_PROMPT)
+
+    def test_main_switches_stdout_to_utf8(self):
+        import io
+        import mini_coding_agent
+
+        original = sys.stdout, sys.stderr
+        sys.stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        sys.stderr = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+        try:
+            with self.assertRaises(SystemExit):
+                mini_coding_agent.main(["--help"])
+            self.assertEqual(sys.stdout.encoding.lower(), "utf-8")
+            print("O(log₂ n)")  # raised UnicodeEncodeError before the fix
+        finally:
+            sys.stdout, sys.stderr = original
 
 
 if __name__ == "__main__":

@@ -1,7 +1,22 @@
-root of repository: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering.git
+Project 2 - Mini Coding Agent with Agent Skills Component (CS440 Group 20)
 
+Repository: https://github.com/cs-440-group20-fall-2026/group20-proj2-vrl-mini-code-agent
+
+Project 2 folder (agent, skills component, SDLC docs, test report):
+https://github.com/cs-440-group20-fall-2026/group20-proj2-vrl-mini-code-agent/tree/main/mini-coding-agent
+
+README documenting the project structure:
+https://github.com/cs-440-group20-fall-2026/group20-proj2-vrl-mini-code-agent/blob/main/mini-coding-agent/README.md
+
+SDLC documents: mini-coding-agent/intent.md, spec.md, plan.md, test-report.md
+Audit log from the live run: mini-coding-agent/agent_skills.log
+
+Video (private): <add the private link to the copy submitted on Canvas only;
+do not commit it, because this repository is public>
+
+
+---
+Lab 4 (context engineering strategies 1 and 4), original repository:
+https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering.git
 Strategy_1: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering/tree/main/strategy_1
-
 Strategy_4: https://github.com/cs-440-group20-fall-2026/vacuum-rl-context-engineering/tree/main/strategy_4
-
-Both strategies are in one repository, as requested.
