@@ -8,9 +8,9 @@ Project 2 extends [`rasbt/mini-coding-agent`](https://github.com/rasbt/mini-codi
 | R1 | Add an Agent Skills component to the mini coding agent | `mini-coding-agent/skills.py` |
 | R2 | Find folder skills (`<skills dir>/<name>/skill.md`) | `SkillManager.discover()` |
 | R3 | Run a skill when a prompt matches it **or** when the agent needs it mid-task | `match_and_trigger()` in `MiniAgent.ask()` + `load_skill` tool |
-| R4 | Use the Lab 5 skill to solve Lab 4 | `.claude/skills/vacuum-rl-report/SKILL.md`, run against `vacuum/` + `lab_5/` (live run *planned*) |
+| R4 | Use the Lab 5 skill to solve Lab 4 | `.claude/skills/vacuum-rl-report/SKILL.md`, run against `vacuum/` + `lab_5/`; live run in `test-report.md` |
 | R5 | Log the prompt, the similarity check, and the executed skill | `SkillManager.log()` → `mini-coding-agent/agent_skills.log`, checked by `verify_skills_log.py` |
-| R6 | Follow an SDLC with one document per stage | `intent.md` → `spec.md` → `plan.md` (done) |
+| R6 | Follow an SDLC with one document per stage | `intent.md` → `spec.md` → `plan.md` → code + tests → `test-report.md` |
 
 ## Architecture overview
 The six core components of `mini-coding-agent` stay as they are: live repo context, a stable prompt prefix, structured tools with approval gates, context reduction, durable transcripts and memory, and bounded sub-agents. We add a seventh:
@@ -46,7 +46,7 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 │   ├── intent.md                       # SDLC stage 1: problem, goal, success criteria
 │   ├── spec.md                         # SDLC stage 2: functional and logging requirements
 │   ├── plan.md                         # SDLC stage 3: phased implementation and test plan
-│   ├── mini_coding_agent.py            # Upstream agent (commit 717cae4) + [Agent Skills] hooks
+│   ├── mini_coding_agent.py            # Upstream agent (commit 717cae4) + [Agent Skills] hooks + [Group 20 fix]es
 │   ├── LICENSE-mini-coding-agent       # Upstream Apache-2.0 license
 │   ├── skills.py                       # Agent Skills component (discovery, similarity, triggers, log)
 │   ├── verify_skills_log.py            # Checks agent_skills.log against spec FR-4; --selfcheck mode
@@ -55,8 +55,8 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 │   ├── tests/
 │   │   ├── test_skills.py              # discovery, similarity, triggers, log, agent loop
 │   │   └── test_verify_skills_log.py   # verifier: valid logs pass, tampered records fail
-│   ├── agent_skills.log                # (planned) audit log from the Lab 4 demo run
-│   └── test-report.md                  # (planned) SDLC stage 5: verification results
+│   ├── agent_skills.log                # Audit log from the live Lab 4 run (verified, 6 records)
+│   └── test-report.md                  # SDLC stage 5: unit tests, live runs, log verification
 ├── vacuum/                             # Lab 4 shared 4x4 simulator
 │   ├── __init__.py
 │   └── environment.py
@@ -89,13 +89,13 @@ Items marked *(planned)* do not exist yet. Everything else is in the repository 
 | 2. Specification | `spec.md` | Done |
 | 3. Plan | `plan.md` | Done |
 | 4. Implementation | `skills.py`, `verify_skills_log.py`, `mini_coding_agent.py`, `skills/pr-review/`, `tests/` | Done |
-| 5. Verification | `agent_skills.log`, `test-report.md`, full test run | Not started |
+| 5. Verification | `agent_skills.log`, `test-report.md`, full test run | Done. The live agent solved Lab 4 with the Lab 5 skill (100.0% charger success, 0.0% trap rate), and the log verifies |
 | 6. Delivery | `group_20.txt`, video | Not started (`group_20.txt` still points to the Lab 4 repo) |
 
-All suites currently pass: `mini-coding-agent/tests/` (52), `tests/` (7), `lab_5/tests/`, `strategy_4/tests/` (35), and `strategy_1/testing/`.
+All suites currently pass: `mini-coding-agent/tests/` (59), `tests/` (7), `lab_5/tests/`, `strategy_4/tests/` (35), and `strategy_1/testing/`.
 
 ## Run
-Python 3.10+, standard library only. The agent uses a local Ollama model, as upstream does. The unit tests use upstream's `FakeModelClient`, so they don't need Ollama. Skill flags: `--skills-dir DIR` (repeatable), `--skills-log PATH`, `--skill-threshold 0.30`, and `--no-skills`. Inside the agent, `/skills` lists the discovered skills and the active one.
+Python 3.10+, standard library only. The agent uses a local Ollama model, as upstream does. Give the Ollama server at least an **8,192-token context**: the agent's prompts reach about 7,000 tokens, and Ollama's default on 8 GB GPUs is 4,096. `test-report.md` §7 shows the setup we used. The unit tests use upstream's `FakeModelClient`, so they don't need Ollama. Skill flags: `--skills-dir DIR` (repeatable), `--skills-log PATH`, `--skill-threshold 0.30`, and `--no-skills`. Inside the agent, `/skills` lists the discovered skills and the active one.
 
 ```bash
 # Unit tests for the skills component

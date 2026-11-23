@@ -1,6 +1,7 @@
 # Vendored from https://github.com/rasbt/mini-coding-agent (commit 717cae4, Apache-2.0,
 # see LICENSE-mini-coding-agent). CS440 Group 20 additions for the seventh component,
-# Agent Skills, are marked "[Agent Skills]"; everything else is upstream.
+# Agent Skills, are marked "[Agent Skills]"; fixes to upstream behaviour found in live runs
+# are marked "[Group 20 fix]"; everything else is upstream.
 import argparse
 import json
 import re
@@ -448,6 +449,11 @@ class MiniAgent:
         lines = []
         seen_reads = set()
         recent_start = max(0, len(history) - 6)
+        # [Group 20 fix] The newest tool result is kept whole (it is already clipped to
+        # MAX_TOOL_OUTPUT when recorded). Upstream cut it to 900 chars, so the model never saw
+        # the end of a file it had just read (e.g. "Best configuration" in report.md) and
+        # re-read it until the step limit.
+        latest_tool = max((i for i, item in enumerate(history) if item["role"] == "tool"), default=-1)
         for index, item in enumerate(history):
             recent = index >= recent_start
             if item["role"] == "tool" and item["name"] in ("write_file", "patch_file"):
@@ -460,14 +466,19 @@ class MiniAgent:
                 seen_reads.add(path)
 
             if item["role"] == "tool":
-                limit = 900 if recent else 180
+                limit = MAX_TOOL_OUTPUT if index == latest_tool else (900 if recent else 180)
                 lines.append(f"[tool:{item['name']}] {json.dumps(item['args'], sort_keys=True)}")
                 lines.append(clip(item["content"], limit))
             else:
                 limit = 900 if recent else 220
                 lines.append(f"[{item['role']}] {clip(item['content'], limit)}")
 
-        return clip("\n".join(lines), MAX_HISTORY)
+        # [Group 20 fix] Keep the newest part of an over-long transcript, not the oldest.
+        text = "\n".join(lines)
+        if len(text) <= MAX_HISTORY:
+            return text
+        marker = "[earlier transcript truncated]\n"
+        return marker + text[-(MAX_HISTORY - len(marker)):]
 
     ########################################################
     #### 2) Prompt Shape And Cache Reuse (Continued) #######
@@ -735,7 +746,9 @@ class MiniAgent:
 
         body = match.group("body")
         args = dict(attrs)
-        for key in ("content", "old_text", "new_text", "command", "task", "pattern", "path"):
+        # [Group 20 fix] Also read <name>/<reason> (load_skill) and numeric args from body tags.
+        for key in ("content", "old_text", "new_text", "command", "task", "pattern", "path",
+                    "name", "reason", "start", "end", "timeout", "max_steps"):
             if f"<{key}>" in body:
                 args[key] = MiniAgent.extract_raw(body, key)
 
@@ -936,6 +949,13 @@ class MiniAgent:
     ###################################################
     def tool_load_skill(self, args):
         name = str(args.get("name", "")).strip()
+        active = self.session.get("active_skill")
+        if active and active["name"] == name:
+            # Nothing to evaluate, so nothing is logged; don't burn steps reloading it.
+            return (
+                f"skill {name} is already active. Do not call load_skill again; "
+                "do the next step of its instructions with run_shell, read_file, or search."
+            )
         activation = self.skill_manager.execute_skill_by_name(name, args.get("reason", ""))
         if activation is None:
             available = ", ".join(self.skill_manager.skills) or "none"
@@ -1070,6 +1090,13 @@ def build_arg_parser():
 
 
 def main(argv=None):
+    # [Group 20 fix] Windows consoles and redirected output default to cp1252, which crashed
+    # print() on model text such as "O(log₂ n)".
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
     args = build_arg_parser().parse_args(argv)
     agent = build_agent(args)
 

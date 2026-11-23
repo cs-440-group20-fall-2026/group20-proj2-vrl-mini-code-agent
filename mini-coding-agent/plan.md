@@ -31,7 +31,8 @@ All Project 2 code lives in `mini-coding-agent/`. The agent runs with the reposi
 - **Deliverables:** `mini-coding-agent/skills/pr-review/skill.md`
 - **Tasks:** Add an unrelated skill so the log shows the similarity check choosing between unrelated skills and not triggering on off-topic prompts.
 
-## Phase 5: Solve Lab 4 Using Lab 5 Skill & Verify
+## Phase 5: Solve Lab 4 Using Lab 5 Skill & Verify ✅
+Done on 2026-11-22; see `test-report.md`. The first live run found four agent defects, which are now fixed and tested. The rerun solved Lab 4.
 - **Deliverables:** `agent_skills.log`, `test-report.md`
 - **Tasks:**
   1. With Ollama running (`qwen3.5:4b` by default), run `python mini-coding-agent/mini_coding_agent.py --cwd . --max-steps 10` and prompt it to solve Lab 4 with Q-learning.
